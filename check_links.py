@@ -1,20 +1,25 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 
 import os
-from urlextract import URLExtract
+
 import requests
+from urlextract import URLExtract
 
 # URLs to skip over
 blacklisted = os.getenv("INPUT_BLACKLIST", "").split(",")
 
-files = os.getenv('INPUT_FILES').split(",")
+files = os.getenv("INPUT_FILES", "README.md").split(",")
 repo = os.getenv("GITHUB_REPOSITORY")
+if not repo:
+    print("repo is required")
+    exit(1)
 links = []
 exit_status = 0
 
+
 def remove_duplicates(urls):
     return list(set(urls))
+
 
 for file in files:
     print(f"Collecting URLs from {file}")
@@ -53,8 +58,9 @@ for file in files:
             else:
                 print(f"⚪ {request.status_code} {url}")
 
-        except:
+        except Exception as e:
             print(f"✕ ERR {url}")
+            print(e)
 
             # Continue through all URLs but fail test at the end
             exit_status = 1

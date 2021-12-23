@@ -1,0 +1,78 @@
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Verify Python valid
+
+on:
+  pull_request:
+    branch:
+    - main
+    - master
+  push:
+    branch:
+    - main
+    - master
+jobs:
+  verify:
+
+    runs-on: ubuntu-latest
+
+    env:
+      INPUT_FILES: test.md
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - run: |
+        pip3 install \
+          bandit \
+          black \
+          build \
+          codespell \
+          flake8 \
+          isort \
+          mypy \
+          pytest \
+          pyupgrade \
+          safety 
+      name: install verify prereqs
+    - run: bandit --recursive .
+    - run: black --check .
+    - run: codespell
+    - run: flake8 . --ignore='W503' --count --max-complexity=10 --max-line-length=88 --show-source --statistics
+    - run: isort --check-only --profile black .
+    - run: pip install -r requirements.txt
+    - name: verify pytest (even if there are no tests present)
+      run: | 
+        pytest . || true
+        code=$?
+        if [[ ${code} -ne 5 && ${code} -ne 0 ]]; then
+          exit ${code}
+        fi
+    - name: verify pytest doctest-modules (even if there are no tests present)
+      run: | 
+        pytest --doctest-modules . || true
+        code=$?
+        if [[ ${code} -ne 5 && ${code} -ne 0 ]]; then
+          exit ${code}
+        fi
+#    issue opened  https://github.com/lipoja/URLExtract/issues/113
+#    - name: check mypy package # will remove true when issue is fixed
+#      run: mypy ./check_links.py
+    - run: shopt -s globstar && pyupgrade --py36-plus **/*.py
+    - run: safety check
+#    - name: Install dependencies
+#      run: |
+#        python3 -m pip install --upgrade pip
+#        pip3 install build
+#    TODO: change it to be a package
+#    - name: Build package
+#      run: python3 -m build
